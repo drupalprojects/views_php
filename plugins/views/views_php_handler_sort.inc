@@ -17,6 +17,7 @@ class views_php_handler_sort extends views_handler_sort {
     $options['use_php_setup'] = array('default' => FALSE);
     $options['php_setup'] = array('default' => '');
     $options['php_sort'] = array('default' => '');
+    $options['sql_sort'] = array('default' => '');
     return $options;
   }
 
@@ -26,6 +27,13 @@ class views_php_handler_sort extends views_handler_sort {
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
 
+    $form += views_php_form_element($this,
+      FALSE,
+      array('sql_sort', t('SQL sort code'), t('Return a valid SQL ORDER BY clause.'), FALSE),
+      array(
+        '$view', '$handler',
+      )
+    );
     $form += views_php_form_element($this,
       array('use_php_setup', t('Use setup code'), t('If checked, you can provide PHP code to be run once right before execution of the view. This may be useful to define functions to be re-used in the value and/or output code.')),
       array('php_setup', t('Setup code'), t('Code to run right before execution of the view.'), FALSE),
@@ -48,6 +56,17 @@ class views_php_handler_sort extends views_handler_sort {
   function query() {
     // Inform views_php_views_pre_execute() to seize control over the query.
     $this->view->views_php = TRUE;
+
+    // Add the SQL sort clause if any.
+    if (!empty($this->options['sql_sort'])) {
+      $function = create_function('$view, $handler, &$static', $this->options['sql_sort'] . ';');
+      ob_start();
+      $clause = $function($this->view, $this, $this->php_static_variable);
+      ob_end_clean();
+      if (!empty($clause)) {
+        $this->query->add_orderby(NULL, NULL, '', $clause);
+      }
+    }
   }
 
   /**
@@ -62,6 +81,11 @@ class views_php_handler_sort extends views_handler_sort {
       $function($this->view, $this, $this->php_static_variable);
       ob_end_clean();
     }
+
+    // Prepare for sorting if needed.
+    if (!empty($this->options['php_sort'])) {
+      $this->pager = new views_php_pager_helper($this->view);
+    }
   }
 
   /**
@@ -74,6 +98,11 @@ class views_php_handler_sort extends views_handler_sort {
       ob_start();
       usort($this->view->result, array($this, 'php_sort'));
       ob_end_clean();
+
+      // Only keep relevant slice if using pager.
+      if (isset($this->pager)) {
+        $this->pager->slice();
+      }
     }
   }
 
@@ -87,6 +116,10 @@ class views_php_handler_sort extends views_handler_sort {
       $$normalized_name = new stdClass;
       foreach ($this->view->display_handler->get_handlers('field') as $field => $handler) {
         $$normalized_name->$field = isset($$name->{$handler->field_alias}) ? $$name->{$handler->field_alias} : NULL;
+      }
+      // Add base_field if found.
+      if (!empty($this->view->base_field) && isset($$name->{$this->view->base_field})) {
+        $$normalized_name->{$this->view->base_field} = $$name->{$this->view->base_field};
       }
     }
     $result = (int)$function($this->view, $this, $this->php_static_variable, $normalized_row1, $normalized_row2);

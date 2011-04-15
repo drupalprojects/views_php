@@ -86,6 +86,11 @@ class views_php_handler_filter extends views_handler_filter {
         foreach ($this->view->display_handler->get_handlers('field') as $field => $handler) {
           $normalized_row->$field = isset($row->{$handler->field_alias}) ? $row->{$handler->field_alias} : NULL;
         }
+        // Add base_field if found.
+        if (!empty($this->view->base_field) && isset($row->{$this->view->base_field})) {
+          $normalized_row->{$this->view->base_field} = $row->{$this->view->base_field};
+        }
+
         if ($function($this->view, $this, $this->php_static_variable, $normalized_row, $row)) {
           unset($this->view->result[$i]);
         }
