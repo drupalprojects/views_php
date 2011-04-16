@@ -94,7 +94,7 @@ class views_php_handler_field extends views_handler_field {
    * Implements views_handler_field#click_sortable().
    */
   function click_sortable() {
-    return !empty($this->options['use_php_click_sortable']);
+    return $this->options['use_php_click_sortable'] != self::CLICK_SORT_DISABLED;
   }
 
   /**
