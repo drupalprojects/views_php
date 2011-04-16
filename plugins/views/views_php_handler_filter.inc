@@ -29,6 +29,7 @@ class views_php_handler_filter extends views_handler_filter {
     $options['use_php_setup'] = array('default' => FALSE);
     $options['php_setup'] = array('default' => '');
     $options['php_filter'] = array('default' => '');
+    $options['sql_filter'] = array('default' => '');
     return $options;
   }
 
@@ -38,6 +39,11 @@ class views_php_handler_filter extends views_handler_filter {
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
 
+    $form += views_php_form_element($this,
+      FALSE,
+      array('sql_filter', t('SQL filter code'), t('Return a valid SQL WHERE clause.'), FALSE),
+      array('$view', '$handler')
+    );
     $form += views_php_form_element($this,
       array('use_php_setup', t('Use setup code'), t('If checked, you can provide PHP code to be run once right before execution of the view. This may be useful to define functions to be re-used in the value and/or output code.')),
       array('php_setup', t('Setup code'), t('Code to run right before execution of the view.'), FALSE),
@@ -56,6 +62,17 @@ class views_php_handler_filter extends views_handler_filter {
   function query() {
     // Inform views_php_views_pre_execute() to seize control over the query.
     $this->view->views_php = TRUE;
+
+    // Add the SQL sort clause if any.
+    if (!empty($this->options['sql_filter'])) {
+      $function = create_function('$view, $handler, &$static', $this->options['sql_filter'] . ';');
+      ob_start();
+      $clause = $function($this->view, $this, $this->php_static_variable);
+      ob_end_clean();
+      if (!empty($clause)) {
+        $this->query->add_where($this->options['group'], $clause);
+      }
+    }
   }
 
   /**

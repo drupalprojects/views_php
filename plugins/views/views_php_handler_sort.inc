@@ -30,9 +30,7 @@ class views_php_handler_sort extends views_handler_sort {
     $form += views_php_form_element($this,
       FALSE,
       array('sql_sort', t('SQL sort code'), t('Return a valid SQL ORDER BY clause.'), FALSE),
-      array(
-        '$view', '$handler',
-      )
+      array('$view', '$handler', '$static')
     );
     $form += views_php_form_element($this,
       array('use_php_setup', t('Use setup code'), t('If checked, you can provide PHP code to be run once right before execution of the view. This may be useful to define functions to be re-used in the value and/or output code.')),
