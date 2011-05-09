@@ -102,6 +102,16 @@ class views_php_handler_sort extends views_handler_sort {
         $this->pager->slice();
       }
     }
+
+    // Mark that we've been here.
+    $this->post_executed = TRUE;
+  }
+
+  function php_pre_render() {
+    // Post execute now for earlier Views 2 versions.
+    if (empty($this->post_executed)) {
+      $this->php_post_execute();
+    }
   }
 
   /**

@@ -176,6 +176,9 @@ class views_php_handler_field extends views_handler_field {
         $this->pager->slice();
       }
     }
+
+    // Mark that we've been here.
+    $this->post_executed = TRUE;
   }
 
   /**
@@ -216,6 +219,11 @@ class views_php_handler_field extends views_handler_field {
    * Implements views_handler_field#pre_render().
    */
   function pre_render(&$values) {
+    // Post execute now for earlier Views 2 versions.
+    if (empty($this->post_executed)) {
+      $this->php_post_execute();
+    }
+
     if (!empty($this->options['php_output'])) {
       $this->php_output_lambda_function = create_function('$view, $handler, &$static, $row, $data, $value', ' ?>' . $this->options['php_output'] . '<?php ');
     }
