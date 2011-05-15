@@ -39,7 +39,7 @@ function views_php_check_access($php_access, $view_name, $display_id, $account =
 /**
  * Helper function; builds form for PHP code options of views handlers/plugins.
  */
-function views_php_form_element($handler, $checkbox = FALSE, $input, $variables = array()) {
+function views_php_form_element($handler, $checkbox = FALSE, $input, $variables = array(), $parents = array('options')) {
   static $default_variables;
   if (!isset($default_variables)) {
     $default_variables = array(
@@ -56,7 +56,7 @@ function views_php_form_element($handler, $checkbox = FALSE, $input, $variables 
 
   list($name, $title, $description, $use_delimiters) = $input;
   $container = array(
-    '#parents' => array('options'),
+    '#parents' => $parents,
   );
 
   if (!empty($checkbox)) {

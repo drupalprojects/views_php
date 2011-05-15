@@ -37,7 +37,8 @@ class views_php_plugin_access extends views_plugin_access {
         '$view_name' => t('The name of the view to check.'),
         '$display_id' => t('The ID of the display to check.'),
         '$account' => t('The account to check.'),
-      )
+      ),
+      array('access_options')
     );
   }
 

@@ -63,23 +63,24 @@ function views_php_views_handlers() {
  */
 function views_php_views_plugins() {
   $plugins = array(
-    'info' => array(
-      'path' => drupal_get_path('module', 'views_php') . '/plugins/views',
-    ),
     'access' => array(
       'php' => array(
         'title' => t('PHP'),
         'help' => t('Use PHP code to grant access.'),
         'handler' => 'views_php_plugin_access',
         'uses options' => TRUE,
+        'path' => drupal_get_path('module', 'views_php') . '/plugins/views',
+        'help topic' => 'access-php',
       ),
     ),
     'cache' => array(
       'php' => array(
         'title' => t('PHP'),
-        'help' => t('Use PHP code to determine whether a should be cached.'),
+        'help' => t('Use PHP code to determine whether a view should be cached.'),
         'handler' => 'views_php_plugin_cache',
         'uses options' => TRUE,
+        'path' => drupal_get_path('module', 'views_php') . '/plugins/views',
+        'help topic' => 'cache-php',
       ),
     ),
   );
