@@ -114,5 +114,17 @@ class views_php_handler_filter extends views_handler_filter {
       }
       ob_end_clean();
     }
+    $this->post_executed = TRUE;
+  }
+
+  /**
+   *
+   * @see views_php_views_pre_render()
+   */
+  function php_pre_render() {
+    if (empty($this->post_executed)) {
+      $this->php_post_execute();
+    }
   }
 }
+

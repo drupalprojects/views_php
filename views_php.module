@@ -149,7 +149,7 @@ function views_php_views_post_execute($view) {
  * Implements hook_views_pre_render().
  */
 function views_php_views_pre_render($view) {
-  foreach (array(/*'argument', 'field', 'filter',*/ 'sort', /*'relationship'*/) as $type) {
+  foreach (array(/*'argument', 'field',*/ 'filter', 'sort', /*'relationship'*/) as $type) {
     foreach ($view->$type as $id => $handler) {
       if (is_callable(array($handler, 'php_pre_render'))) {
         $handler->php_pre_render();
