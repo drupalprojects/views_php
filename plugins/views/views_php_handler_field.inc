@@ -27,8 +27,6 @@ class views_php_handler_field extends views_handler_field {
     $options['php_output'] = array('default' => '');
     $options['use_php_click_sortable'] = array('default' => self::CLICK_SORT_DISABLED);
     $options['php_click_sortable'] = array('default' => FALSE);
-    $options['use_php_query'] = array('default' => FALSE);
-    $options['php_query'] = array('default' => '');
     return $options;
   }
 
@@ -38,11 +36,6 @@ class views_php_handler_field extends views_handler_field {
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
 
-    $form += views_php_form_element($this,
-      array('use_php_query', t('Use query code'), t('If checked, you can provide PHP code to be run during setup of the SQL query. This may be useful to manually edit the query as it is being built.')),
-      array('php_query', t('Query code'), t('Code to run during setup of the SQL query.'), FALSE),
-      array('$view', '$handler')
-    );
     $form += views_php_form_element($this,
       array('use_php_setup', t('Use setup code'), t('If checked, you can provide PHP code to be run once right before execution of the view. This may be useful to define functions to be re-used in the value and/or output code.')),
       array('php_setup', t('Setup code'), t('Code to run right before execution of the view.'), FALSE),
@@ -95,14 +88,6 @@ class views_php_handler_field extends views_handler_field {
     $this->field_alias = 'views_php_' . $this->position;
     // Inform views_php_views_pre_execute() to seize control over the query.
     $this->view->views_php = TRUE;
-
-    // Run the query code.
-    if (!empty($this->options['use_php_query'])) {
-      $function = create_function('$view, $handler', $this->options['php_query'] . ';');
-      ob_start();
-      $function($this->view, $this);
-      ob_end_clean();
-    }
   }
 
   /**
