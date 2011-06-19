@@ -97,7 +97,11 @@ function views_php_form_element($handler, $checkbox = FALSE, $input, $variables 
 
     if (strpos($variable_name, '$row') === 0) {
       foreach ($handler->view->display_handler->get_handlers('field') as $field => $field_handler) {
-        $items[] = l($variable_name . '->' . $field, '', array('fragment' => $container[$name]['#id'], 'external' => TRUE)) . ': ' . $field_handler->ui_name();
+        $title = $field_handler->label();
+        if (empty($title)) {
+          $title = $field_handler->ui_name();
+        }
+        $items[] = l($variable_name . '->' . $field, '', array('fragment' => $container[$name]['#id'], 'external' => TRUE)) . ': ' . $title;
       }
     }
   }
