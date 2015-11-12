@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Provide views handlers and plugins that allow usage of PHP.
+ * Provide views handlers that allow usage of PHP.
  */
 
 /**
@@ -13,48 +13,20 @@ function views_php_views_data() {
     'title' => t('PHP'),
     'help' => t('Use PHP code.'),
     'area' => array(
-      'help' => t('Use PHP code to construct the output of an area.'),
-      'handler' => 'views_php_handler_area',
+      'id' => 'views_php',
     ),
     'field' => array(
-      'help' => t('Use PHP code to construct the output of a field.'),
-      'handler' => 'views_php_handler_field',
+      'id' => 'views_php',
     ),
     'filter' => array(
-      'help' => t('Use PHP code to filter the result of the view.'),
-      'handler' => 'views_php_handler_filter',
+      'id' => 'views_php',
     ),
     'sort' => array(
-      'help' => t('Use PHP code to sort the result of the view.'),
-      'handler' => 'views_php_handler_sort',
+      'id' => 'views_php',
     ),
   );
+
   return $data;
 }
 
-/**
- * Implements hook_views_plugins().
- */
-function views_php_views_plugins() {
-  $plugins = array(
-    'access' => array(
-      'php' => array(
-        'title' => t('PHP'),
-        'help' => t('Use PHP code to grant access.'),
-        'help topic' => '',
-        'handler' => 'views_php_plugin_access',
-        'uses options' => TRUE,
-      ),
-    ),
-    'cache' => array(
-      'php' => array(
-        'title' => t('PHP'),
-        'help' => t('Use PHP code to determine whether a should be cached.'),
-        'help topic' => '',
-        'handler' => 'views_php_plugin_cache',
-        'uses options' => TRUE,
-      ),
-    ),
-  );
-  return $plugins;
-}
+

@@ -5,21 +5,17 @@
  * Allows to use PHP in views.
  */
 
-/**
- * Implements hook_views_api().
- */
-function views_php_views_api() {
-  return array(
-    'api' => 3,
-  );
-}
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\Url;
+use Drupal\views\ViewExecutable;
 
 /**
  * Menu access callback function; use PHP code to determine whether a user as
  * access.
  */
 function views_php_check_access($php_access, $view_name, $display_id, $account = NULL) {
-  global $user;
+  $user = \Drupal::currentUser();
   static $function = array();
 
   if (!isset($account)) {
@@ -39,8 +35,11 @@ function views_php_check_access($php_access, $view_name, $display_id, $account =
 /**
  * Helper function; builds form for PHP code options of views handlers/plugins.
  */
-function views_php_form_element($handler, $checkbox = FALSE, $input, $variables = array()) {
+function views_php_form_element($handler, $checkbox = NULL, $input, $variables = array()) {
   static $default_variables;
+
+  $user = \Drupal::currentUser();
+
   if (!isset($default_variables)) {
     $default_variables = array(
       '$view'    => t('The view object.'),
@@ -77,7 +76,7 @@ function views_php_form_element($handler, $checkbox = FALSE, $input, $variables 
   }
   $container[$name] = array(
     '#type' => 'textarea',
-    '#id' => drupal_html_id('edit-options-' . $name),
+    '#id' => Html::getId('edit-options-' . $name),
     '#title' => $title,
     '#default_value' => $handler->options[$name],
     '#rows' => 5,
@@ -87,7 +86,7 @@ function views_php_form_element($handler, $checkbox = FALSE, $input, $variables 
       . '</strong>',
   );
   // Only users with use PHP permission can set/modify input.
-  if (!user_access('use PHP for settings')) {
+  if (!$user->hasPermission('use PHP for settings')) {
     $container[$name]['#disabled'] = TRUE;
     $container[$name]['#value'] = $container[$name]['#default_value'];
     $container[$name]['#description'] .= ' <strong>' . t('You do not have permission to modify this.') . '</strong>';
@@ -99,12 +98,18 @@ function views_php_form_element($handler, $checkbox = FALSE, $input, $variables 
       $variable_name = $description;
       $description = isset($default_variables[$description]) ? $default_variables[$description] : '';
     }
-    $items[] = l($variable_name, '', array('fragment' => $container[$name]['#id'], 'external' => TRUE)) . ': ' . $description;
+    $url = Url::fromUri('internal:', array('fragment' => $container[$name]['#id']));
+    $url->setOption('external', TRUE);
+    $link = \Drupal::l($variable_name, $url);
+    $items[] = SafeMarkup::format('!link: @description', array(
+      '!link' => $link,
+      '@description' => $description,
+    ));
 
     if (strpos($variable_name, '$row') === 0) {
-      $php_value = ($input[0] == 'php_value') ? true : false;
+      $php_value = ($input[0] == 'php_value') ? TRUE : FALSE;
 
-      foreach ($handler->view->display_handler->get_handlers('field') as $field => $field_handler) {
+      foreach ($handler->view->display_handler->getHandlers('field') as $field => $field_handler) {
         // Do not add fields that will not have data when evaluating the value code. This occurs because
         // the value code is evaluated in hook_views_post_execute(), but field data is made available in hook_views_pre_render(),
         // which is called after hook_views_post_execute().
@@ -112,7 +117,14 @@ function views_php_form_element($handler, $checkbox = FALSE, $input, $variables 
           continue;
         }
 
-        $items[] = l($variable_name . '->' . $field, '', array('fragment' => $container[$name]['#id'], 'external' => TRUE)) . ': ' . $field_handler->ui_name();
+        $url = Url::fromUri('internal:', array('fragment' => $container[$name]['#id']));
+        $url->setOption('external', TRUE);
+        $link = \Drupal::l($variable_name . '->' . $field, $url);
+
+        $items[] = SafeMarkup::format('!link: @description', array(
+          '!link' => $link,
+          '@description' => $field_handler->adminLabel(),
+        ));
       }
     }
   }
@@ -122,9 +134,6 @@ function views_php_form_element($handler, $checkbox = FALSE, $input, $variables 
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
     '#attributes' => array('class' => array('views-php-variables')),
-    '#attached' => array(
-      'js' => array(drupal_get_path('module', 'views_php') . '/views_php.js'),
-    )
   );
   $container[$name . '_variables']['variables'] = array(
     '#theme' => 'item_list',
@@ -134,26 +143,65 @@ function views_php_form_element($handler, $checkbox = FALSE, $input, $variables 
   if (!empty($checkbox)) {
     return array($checkbox_name => $checkbox, $name => $container);
   }
+
   return array($name => $container);
 }
+
 
 /**
  * Implements hook_views_pre_execute().
  */
-function views_php_views_pre_execute($view) {
-  // Seize control over the query plugin if a views handler requested so.
+function views_php_views_pre_execute(ViewExecutable $view) {
   if (!empty($view->views_php)) {
-    $query = new views_php_plugin_query();
-    $query->php_wrap($view->query);
+
+    foreach (array(/*'argument',*/ 'field', 'filter', 'sort', /*'relationship'*/) as $type) {
+      foreach ($view->$type as $id => $handler) {
+        if (is_callable(array($handler, 'phpPreExecute'))) {
+          $handler->phpPreExecute();
+        }
+      }
+    }
+
+    $view->query->setLimit(0);
+    $view->query->setOffset(0);
   }
 }
 
 /**
  * Implements hook_views_post_execute().
  */
-function views_php_views_post_render($view) {
-  // Restore original query plugin if it was wrapped.
-  if ($view->query instanceof views_php_plugin_wrapper) {
-    $view->query->php_unwrap();
+function views_php_views_post_execute(ViewExecutable $view) {
+  if (!empty($view->views_php)) {
+    foreach (array(/*'argument',*/ 'field', 'filter', 'sort', /*'relationship'*/) as $type) {
+      foreach ($view->$type as $id => $handler) {
+        if (is_callable(array($handler, 'phpPostExecute'))) {
+          $handler->phpPostExecute();
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function views_php_views_pre_render(ViewExecutable $view) {
+  if (!empty($view->views_php)) {
+    foreach (array(/*'argument',*/ 'field', 'filter', 'sort', /*'relationship'*/) as $type) {
+      foreach ($view->$type as $id => $handler) {
+        if (is_callable(array($handler, 'phpPreRender'))) {
+          $handler->phpPreRender();
+        }
+      }
+    }
+
+    $view->pager->total_items = count($view->result);
+    $view->pager->updatePageInfo();
+
+    $item_per_page = $view->pager->getItemsPerPage();
+    if ($item_per_page > 0) {
+      $offset = $view->pager->getCurrentPage() * $item_per_page + $view->pager->getOffset();
+      $view->result = array_slice($view->result, $offset, $item_per_page);
+    }
   }
 }
